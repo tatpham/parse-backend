@@ -1,0 +1,33 @@
+{
+  "name": "iuvivoweb-backend",
+  "version": "1.0.0",
+  "description": "## Setup environment",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "cross-env NODE_ENV=production node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon --inspect server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/Tat-Thien/iuvivoweb-backend.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/Tat-Thien/iuvivoweb-backend/issues"
+  },
+  "homepage": "https://gitlab.com/Tat-Thien/iuvivoweb-backend#readme",
+  "devDependencies": {
+    "cross-env": "^7.0.2",
+    "dotenv": "^8.2.0",
+    "nodemon": "^2.0.4"
+  },
+  "dependencies": {
+    "cookie-session": "^1.4.0",
+    "express": "^4.17.1",
+    "firebase-admin": "^8.13.0",
+    "parse": "^2.13.0",
+    "parse-server": "^4.2.0"
+  }
+}
