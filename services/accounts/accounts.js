@@ -1,83 +1,117 @@
-
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
-const UserToken = Parse.Object.extend("User_token");
+const setSessionCookie = (request, user) => {
+  const sessionToken = user.getSessionToken();
 
-router.post('/login', (req, res) => {
-    Parse.User.logIn(req.body.username, req.body.password).then(function(user) {
-        req.session.userId = user.id;
-        req.session.token = user.getSessionToken();
-        return res.status(200).end();
+  request.session.userId = user.id;
+  request.session.token = sessionToken;
+};
 
-    }).then(null, function(_error) {
-        res.clearCookie(process.env.COOKIE_NAME);
-        return res.status(403).end();
+const getUserByUsername = (username) => {
+  const query = new Parse.Query("User");
+  query.equalTo("username", username);
+  return query.first();
+};
+
+router.post("/login", async (req, res) => {
+  await Parse.User.logIn(req.body.username, req.body.password)
+    .then(function(user) {
+      setSessionCookie(req, user);
+      return res.status(200).json(user);
+    })
+    .then(null, function(error) {
+      res.clearCookie(process.env.COOKIE_NAME);
+      return res.status(400).json(error);
     });
 });
 
-router.post('/logout', (req, res) => {
-    const { token } = req.session;
+router.post("/logout", async (req, res) => {
+  const { token } = req.session;
 
-    if (token) {
-        Parse._request('POST', 'logout', {
-            'X-Parse-Session-Token': token,
-        }).then(function (_user) {
-            res.clearCookie(process.env.COOKIE_NAME);
-            res.clearCookie(`${process.env.COOKIE_NAME}.sig`)
-            return res.status(200).end();
-        }, function (_error) {
-            return res.status(401).end();
-        });
-    } else {
+  if (token) {
+    await Parse.Cloud.httpRequest({
+      url: `${process.env.PARSE_SERVER_URL}/logout`,
+      method: "POST",
+      headers: {
+        "X-Parse-Application-Id": process.env.APP_ID,
+        "X-Parse-REST-API-Key": process.env.REST_API_KEY,
+        "X-Parse-Session-Token": token,
+      },
+    }).then(
+      function(_user) {
+        res.clearCookie(process.env.COOKIE_NAME);
+        res.clearCookie(`${process.env.COOKIE_NAME}.sig`);
+        return res.status(200).end();
+      },
+      function(_error) {
         return res.status(401).end();
-    }
-    
+      }
+    );
+  } else {
+    return res.status(401).end();
+  }
 });
 
-router.post('/register', async (req, res) => {
-    const user = new Parse.User();
+router.get("/currentuser", async (req, res) => {
+  const { token } = req.session;
 
-    const {username, password, mail, phone} = req.body || {};
+  if (token) {
+    await Parse.Cloud.httpRequest({
+      url: `${process.env.PARSE_SERVER_URL}/users/me`,
+      headers: {
+        "X-Parse-Application-Id": process.env.APP_ID,
+        "X-Parse-REST-API-Key": process.env.REST_API_KEY,
+        "X-Parse-Session-Token": token,
+      },
+    }).then(
+      function(response) {
+        const { objectId, username } = response.data;
+
+        req.session.userId = objectId;
+        req.session.token = token;
+
+        return res.status(200).json({
+          objectId,
+          username,
+        });
+      },
+      function(_error) {
+        // The token could not be validated.
+        res.clearCookie(process.env.COOKIE_NAME);
+        res.clearCookie(`${process.env.COOKIE_NAME}.sig`);
+
+        return res.status(401).end();
+      }
+    );
+  }
+
+  return res.status(401).end();
+});
+
+router.post("/register", async (req, res) => {
+  const { username, password } = req.body;
+
+  if (await getUserByUsername(username)) {
+    res.status(400).json({ message: "User already exists" });
+  } else {
+    const user = new Parse.User();
     user.set("username", username);
     user.set("password", password);
-    user.set("email", mail);
+    user.set("email", `${username}@example.com`);
 
-    user.set("phone", phone);
+    // other fields can be set just like with Parse.Object
+    user.set("phone", "415-392-0202");
+
     try {
-        await user.signUp();
-        console.log('registering user succeeded')
-        res.json({});
+      await user.signUp();
+      setSessionCookie(req, user);
+      res.json(user);
     } catch (error) {
-        console.log('registering user failed')
-        res.redirect('/login');
+      console.log("registering user failed");
+      res.status(400).json(error);
     }
-
-});
-
-router.post('/registerFcmToken', async (req, res) => {
-    const { userId, token } = req.session;
-
-    if (token && userId) {
-        const { fcmToken } = req.body;
-
-        let userToken = (await new Parse.Query(UserToken).equalTo('userId', userId).find()).shift();
-        
-        if (!userToken) {
-            userToken = new UserToken();
-            userToken.set('userId', userId);
-        }
-        userToken.set('fcmToken', fcmToken);
-
-        userToken.save()
-            .then((_userToken) => {
-                return res.status(200).end();
-            }, (_error) => {
-                return res.status(400).end();
-            }); 
-    } else {
-        return res.status(401).end();
-    }
+  }
 });
 
 module.exports = router;
