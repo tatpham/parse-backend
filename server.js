@@ -34,10 +34,10 @@ const api = new ParseServer({
 
 // enable cors only for whitelisted origin
 app.use(function(_req, res, next) {
-  res.header("Access-Control-Allow-Origin", process.env.WHITELISTED_CROSS_ORIGIN);
+  res.header('Access-Control-Allow-Origin', process.env.WHITELISTED_CROSS_ORIGIN);
   res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept'
   );
   next();
 });
