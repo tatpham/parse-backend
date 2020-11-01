@@ -1,5 +1,5 @@
 require('dotenv').config({
-    path: `.env.${process.env.NODE_ENV}`
+  path: `.env.${process.env.NODE_ENV}`,
 });
 
 const express = require('express');
@@ -30,6 +30,16 @@ const api = new ParseServer({
     liveQuery: {
         classNames: [],
     },
+});
+
+// enable cors only for whitelisted origin
+app.use(function(_req, res, next) {
+  res.header("Access-Control-Allow-Origin", process.env.WHITELISTED_CROSS_ORIGIN);
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
 });
 
 // Serve the Parse API on the /parse URL prefix
