@@ -21,5 +21,6 @@
 | PATH_CERTIFICATE_CERT | pathToCertificate |
 | PASSPHRASE_CERTIFICATE | myPassphrase |
 | PATH_STATIC_FILES | relativePathToStaticContent |
+| WHITELISTED_CROSS_ORIGIN | whitelistedOrigin |
 
 3. Replace secrets accordingly
